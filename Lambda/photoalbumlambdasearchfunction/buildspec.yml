@@ -1,0 +1,12 @@
+
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+        python: 3.8
+  build:
+    commands:
+      - sam package --template-file inputsamtemplate.yml --s3-bucket storinglambdas --output-template-file searchoutputsamtemplate.yml
+artifacts:
+  files:
+    - searchoutputsamtemplate.yml
