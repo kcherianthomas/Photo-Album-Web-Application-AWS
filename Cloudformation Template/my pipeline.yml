@@ -1,0 +1,193 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS Photo Album Cloud Formation CTSN
+Resources:
+  S3BucketFrontEnd:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      BucketName: photoalbumassignment2ctsn
+      WebsiteConfiguration:
+        IndexDocument: chat.html
+        ErrorDocument: error.html
+    DeletionPolicy: Retain
+  S3BucketStoringImage:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      BucketName: photoalbumassignment2storingphotoctsn
+    DeletionPolicy: Retain
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      PolicyDocument:
+        Id: PublicWebsitePolicy
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Join
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref S3BucketFrontEnd
+                - /*
+      Bucket: !Ref S3BucketFrontEnd
+  RestApi:
+      Type: 'AWS::ApiGateway::RestApi'
+      Properties:
+        ApiKeySourceType: HEADER
+        BinaryMediaTypes:
+          - image/png
+          - image/jpg
+          - image/jpeg
+        Body:
+          swagger: '2.0'
+          info:
+            title: AI Photo Search
+            description: 'AI Photo Search application, built during the Cloud and Big Data course at Columbia University.'
+            version: 1.0.0
+          schemes:
+            - https
+          basePath: /v1
+          produces:
+            - application/json
+          paths:
+            /search:
+              get:
+                summary: photo search method
+                description: |
+                  This API takes in a search query as a query parameter and returns zero or more photos that match the search query.
+                operationId: searchPhotos
+                parameters:
+                  - in: query
+                    name: q
+                    schema:
+                      type: string
+                    description: the string to be searched
+                produces:
+                  - application/json
+                responses:
+                  '200':
+                    description: search results
+                    schema:
+                      $ref: '#/definitions/SearchResponse'
+                  '403':
+                    description: Unauthorized
+                    schema:
+                      $ref: '#/definitions/Error'
+                  '500':
+                    description: Unexpected error
+                    schema:
+                      $ref: '#/definitions/Error'
+            /upload:
+              put:
+                summary: photo upload method
+                description: |
+                  This API takes in the multi-part body sent to it (ex. a photo) and uploads it to an S3 bucket.
+                operationId: uploadPhoto
+                consumes:
+                  - image/png
+                  - image/jpg
+                  - image/jpeg
+                produces:
+                  - application/json
+                responses:
+                  '200':
+                    description: S3 PUT operation response
+                    schema:
+                      type: object
+                  '403':
+                    description: Unauthorized
+                    schema:
+                      $ref: '#/definitions/Error'
+                  '500':
+                    description: Unexpected error
+                    schema:
+                      $ref: '#/definitions/Error'
+          definitions:
+            SearchResponse:
+              type: object
+              properties:
+                results:
+                  type: array
+                  items:
+                    $ref: '#/definitions/Photo'
+            Photo:
+              type: object
+              properties:
+                url:
+                  type: string
+                labels:
+                  type: array
+                  items:
+                    type: string
+            Error:
+              type: object
+              properties:
+                code:
+                  type: integer
+                  format: int32
+                message:
+                  type: string
+        Description: My Test API for cloudformation
+        Parameters:
+          endpointConfigurationTypes: REGIONAL
+        Name: MyTestAPI
+      
+  LambdaFunction1:
+    Type: 'AWS::Lambda::Function'
+    Properties: 
+      Code: 
+        S3Bucket: storinglambdas
+        S3Key: lambda_function.py.zip
+      Description: lambda function for search
+      FunctionName: search-photos-cloudformation
+      Handler: lambda_function.lambda_handler
+      MemorySize: 256
+      Role: arn:aws:iam::060585368592:role/service-role/search-photos-role-5zyqynjv
+      Runtime: python3.8
+      Timeout: 60
+
+  LambdaFunction2:
+    Type: 'AWS::Lambda::Function'
+    Properties: 
+      Code: 
+        S3Bucket: storinglambdas
+        S3Key: indexLambda.zip
+      Description: lambda function for upload
+      FunctionName: index-photos-cloudformation
+      Handler: lambda_function.lambda_handler
+      MemorySize: 256
+      Role: arn:aws:iam::060585368592:role/service-role/index-photos-role-ksuixld8
+      Runtime: python3.8
+      Timeout: 60
+  ElasticsearchDomain:
+    Type: AWS::Elasticsearch::Domain
+    Properties:
+      DomainName: "photos1"
+      ElasticsearchClusterConfig:
+        DedicatedMasterEnabled: "false"
+        InstanceCount: "2"
+        ZoneAwarenessEnabled: "true"
+        InstanceType: "t2.small.elasticsearch"
+      EBSOptions:
+        EBSEnabled: true
+        Iops: 0
+        VolumeSize: 10
+        VolumeType: "gp2"
+Outputs:
+  WebsiteURL:
+    Value: !GetAtt
+      - S3BucketFrontEnd
+      - WebsiteURL
+    Description: URL for website hosted on S3
+  S3BucketSecureURL:
+    Value: !Join
+      - ''
+      - - 'https://'
+        - !GetAtt
+          - S3BucketFrontEnd
+          - DomainName
+    Description: Name of S3 bucket to hold website content
+  

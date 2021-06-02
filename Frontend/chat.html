@@ -1,0 +1,153 @@
+<!-- Template: http://getbootstrap.com/examples/cover/ -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+  <meta name="description" content="This is a starter project for a chatbot concierge application built on AWS.">
+  <meta name="author" content="Andrei Papancea">
+
+  <title>Photo Album</title>
+
+  <!-- Bootstrap core CSS -->
+  <link href="./assets/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+  <link href="./assets/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
+
+  <!-- Custom styles for this template -->
+
+  <link href="./assets/css/chat.css" rel="stylesheet">
+
+  <!-- api gateway generated sdk -->
+  <script src="./assets/js/sdk/lib/axios/dist/axios.standalone.js"></script>
+  <script src="./assets/js/sdk/lib/CryptoJS/rollups/hmac-sha256.js"></script>
+  <script src="./assets/js/sdk/lib/CryptoJS/rollups/sha256.js"></script>
+  <script src="./assets/js/sdk/lib/CryptoJS/components/hmac.js"></script>
+  <script src="./assets/js/sdk/lib/CryptoJS/components/enc-base64.js"></script>
+  <script src="./assets/js/sdk/lib/url-template/url-template.js"></script>
+  <script src="./assets/js/sdk/lib/apiGatewayCore/sigV4Client.js"></script>
+  <script src="./assets/js/sdk/lib/apiGatewayCore/apiGatewayClient.js"></script>
+  <script src="./assets/js/sdk/lib/apiGatewayCore/simpleHttpClient.js"></script>
+  <script src="./assets/js/sdk/lib/apiGatewayCore/utils.js"></script>
+
+  <script src="./assets/js/sdk/apigClient.js"></script>
+
+  <script src="./assets/js/aws-sdk.min.js"></script>
+  <script src="dist/main.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
+
+
+  <!-- Bootstrap core JavaScript
+    ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <!-- <script>window.jQuery || document.write('<script src="./assets/js/vendor/jquery.min.js"><\/script>')</script> -->
+  <script src="./assets/js/bootstrap.min.js"></script>
+  <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+  <script src="./assets/js/ie10-viewport-bug-workaround.js"></script>
+  <!-- custom scroll bar -->
+  <script
+    src='https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.3/jquery.mCustomScrollbar.concat.min.js'></script>
+  <!-- chat js -->
+  <script src="./assets/js/chat.js"></script>
+
+  <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+  <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css"
+    integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
+  <h1>MY PHOTO ALBUM</h1>
+</head>
+
+<body>
+
+
+
+  <div class="container h-100">
+    <div class="d-flex justify-content-center h-100">
+      <div class="searchbar">
+        <input class="search_input" id="searchText" type="text" name="" placeholder="Search...">
+        <!-- <a href="#" class="microphone_icon"><i class="fas fa-microphone fa"></i></a> -->
+        <a href="#" class="search_icon"><i onclick="searchImage()" class="fas fa-search fa"></i></a>
+      </div>
+
+    </div>
+    <div class="col" style="visibility: hidden; display: none;">
+      <label>Access ID:</label>
+      <input type="password" id="access_id" placeholder="ACCESS ID" value="" />
+
+      <label>Secret Key:</label>
+      <input type="password" id="secret_key" placeholder="SECRET KEY"
+        value="" />
+      <label>Session Token (if using MFA):</label>
+      <input type="password" id="session_token" placeholder="SESSION TOKEN" value="" />
+    </div>
+    <div class="col" style="visibility: hidden; display: none;">
+      <label>Language: </label>
+      <select id="language">
+        <optgroup label="English">
+          <option value="en-US">US English (en-US)</option>
+          <option value="en-AU">Australian English (en-AU)</option>
+          <option value="en-GB">British English (en-GB)</option>
+        </optgroup>
+        <optgroup label="French">
+          <option value="fr-CA">Canadian French (fr-CA)</option>
+          <option value="fr-FR">French (fr-FR)</option>
+        </optgroup>
+        <optgroup label="Spanish">
+          <option value="es-US">US Spanish (es-US)</option>
+        </optgroup>
+      </select>
+
+      <label>Region:</label>
+      <select id="region">
+        <option value="us-east-1">US East (N. Virginia)</option>
+        <option value="us-east-2">US East (Ohio)</option>
+        <option value="us-west-2">US West (Oregon)</option>
+        <option value="ap-southeast-2">Asia Pacific (Sydney)</option>
+        <option value="ca-central-1">Canada (Central)</option>
+        <option value="eu-west-1">EU (Ireland)</option>
+      </select>
+    </div>
+    <textarea id="transcript" style="visibility: hidden; display: none;" placeholder="Press Start and speak into your mic" rows="5" readonly="readonly"></textarea>
+    <div class="row">
+      <div class="col" style = "padding: 15px;">
+        <button id="start-button" class="button-xl" title="Start Transcription">
+          <i class="fa fa-microphone"></i> Start
+        </button>
+        <button id="stop-button" class="button-xl" title="Stop Transcription" disabled="true"><i
+            class="fa fa-stop-circle"></i> Stop
+        </button>
+      </div>
+    </div>
+    <div>
+      <br>
+      <input type="file" class="fa fa-cloud-upload" id="imgId" name="img" accept="image/*" onchange="viewImage(this)">
+      <input type="input" class="fa fa-user" placeholder="Custom label..." id="customLabels" name="lbl">
+      <input type="submit" class="btn btn-success" id="submitImage" onclick="uploadImage()">
+      <div id="uploadResponse"></div>
+    </div>
+    <div>
+      <table width="100%" style="height: 100%;" border="0">
+        <tr>
+          <td>
+            <p id="displayImage">
+          </td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+  <script src="dist/main.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
+</body>
+
+</html>
